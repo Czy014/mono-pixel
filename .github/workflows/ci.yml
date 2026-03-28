@@ -14,7 +14,14 @@ jobs:
           activate-environment: true
       - name: Install dependencies
         run: |
-          uv sync --color always
+          uv sync --dev
+      - name: Build
+        run: uv build
+      # Check that basic features work and we didn't miss to include crucial files
+      - name: Pytest (wheel)
+        run: uv run --isolated --no-project --with dist/*.whl pytest -q
+      - name: Pytest (source distribution)
+        run: uv run --isolated --no-project --with dist/*.tar.gz pytest -q
       - name: Check code quality
         run: |
           ruff format --check --diff
