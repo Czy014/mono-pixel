@@ -1,7 +1,5 @@
 """Text rendering module for pixel-style output."""
 
-from __future__ import annotations
-
 from enum import StrEnum
 
 from PIL import Image, ImageDraw, ImageFont
