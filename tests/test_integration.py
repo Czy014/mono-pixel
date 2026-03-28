@@ -1,7 +1,5 @@
 """Integration tests for core APIs and end-to-end workflow."""
 
-from __future__ import annotations
-
 from pathlib import Path
 
 from PIL import Image

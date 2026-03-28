@@ -2,8 +2,6 @@
 核心API集成测试
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 
 import pytest
