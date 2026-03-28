@@ -12,6 +12,10 @@ mono-pixel = "mono_pixel.cli:cli"
 [dependency-groups]
 dev = ["pre-commit>=4.4.0", "ruff>=0.14.5", "ty>=0.0.25", "pytest>=8.0.0"]
 
+[build-system]
+requires = ["uv_build>=0.11.2,<0.12"]
+build-backend = "uv_build"
+
 ## UV
 [tool.uv]
 package = true
