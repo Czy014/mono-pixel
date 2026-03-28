@@ -4,16 +4,13 @@ version = "0.1.0"
 description = "a tool that converts your text and fonts into pixel img."
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = [
-    "pillow>=10.0.0",
-    "typer>=0.12.0",
-]
+dependencies = ["pillow>=10.0.0", "typer>=0.12.0"]
 
 [project.scripts]
-mono-pixel = "mono_pixel.cli:main"
+mono-pixel = "mono_pixel.cli:cli"
 
 [dependency-groups]
-dev = ["pre-commit>=4.4.0", "ruff>=0.14.5", "ty>=0.0.25"]
+dev = ["pre-commit>=4.4.0", "ruff>=0.14.5", "ty>=0.0.25", "pytest>=8.0.0"]
 
 ## UV
 [tool.uv]
@@ -55,4 +52,3 @@ select = [
 
 [tool.ruff.format]
 docstring-code-format = true
-skip-magic-trailing-comma = true
