@@ -3,13 +3,13 @@
 from pathlib import Path
 
 import pytest
-from PIL import ImageFont
 
 from mono_pixel.exporter import save_image, strict_binarization
 from mono_pixel.font_loader import (
     FontNotFoundError,
     calculate_text_size,
     get_font_metrics,
+    load_font,
     validate_font_file,
 )
 from mono_pixel.renderer import (
@@ -19,6 +19,8 @@ from mono_pixel.renderer import (
     create_canvas,
 )
 
+TEST_FONT = Path(__file__).parent / "PICO-8 mono.ttf"
+
 
 def test_validate_font_file_raises_for_missing():
     """validate_font_file should raise for missing font paths."""
@@ -27,8 +29,8 @@ def test_validate_font_file_raises_for_missing():
 
 
 def test_font_metrics_and_text_size():
-    """Loading default font should provide sensible metrics and text size."""
-    font = ImageFont.load_default()
+    """Loading a font should provide sensible metrics and text size."""
+    font = load_font(str(TEST_FONT), 12)
     ascent, descent, line_height = get_font_metrics(font)
     assert isinstance(ascent, int)
     assert isinstance(descent, int)
@@ -44,7 +46,7 @@ def test_renderer_create_canvas_and_position():
     canvas = create_canvas(200, 100, "white")
     assert canvas.size == (200, 100)
 
-    font = ImageFont.load_default()
+    font = load_font(str(TEST_FONT), 12)
     x, y = calculate_text_position(
         "Test",
         font,
