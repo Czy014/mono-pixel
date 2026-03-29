@@ -12,9 +12,9 @@ from rich.prompt import Confirm, Prompt
 from . import __version__
 from .exporter import save_image
 from .font_loader import (
-    FontNotFoundError,
-    InvalidFontError,
     calculate_text_size,
+    get_builtin_fonts,
+    get_bundled_font_path,
     load_font,
 )
 from .renderer import (
@@ -23,6 +23,7 @@ from .renderer import (
     calculate_auto_font_size,
     render_text,
 )
+from .utils.exceptions import FontNotFoundError, InvalidFontError, ResourceAccessError
 from .utils.preview import (
     build_position_aware_preview,
     generate_ascii_preview,
@@ -114,8 +115,9 @@ def parse_padding(padding_str: str) -> int | tuple[int, int, int, int]:
 
 def pre_validate_layout(
     text: str,
-    font_path: str,
     image_size: tuple[int, int],
+    font_path: str | None = None,
+    builtin_font: str | None = None,
     font_size: int | None = None,
     auto_fit: bool = False,
     padding: int | tuple[int, int, int, int] = 16,
@@ -123,6 +125,16 @@ def pre_validate_layout(
     """Pre-validate layout and return (has_errors, warnings)."""
     warnings = []
     has_errors = False
+
+    # Determine actual font path
+    actual_font_path: str
+    if font_path is not None:
+        actual_font_path = font_path
+    elif builtin_font is not None:
+        actual_font_path = str(get_bundled_font_path(builtin_font))
+    else:
+        # This should not happen due to validation before calling this function
+        raise ValueError("Either font_path or builtin_font must be provided")
 
     if isinstance(padding, int):
         pad_top = pad_right = pad_bottom = pad_left = padding
@@ -135,13 +147,13 @@ def pre_validate_layout(
     actual_font_size = font_size
     if auto_fit:
         actual_font_size = calculate_auto_font_size(
-            text, font_path, image_size[0], image_size[1], padding
+            text, actual_font_path, image_size[0], image_size[1], padding
         )
 
     if actual_font_size is None:
         return True, ["Could not determine font size"]
 
-    font = load_font(font_path, actual_font_size)
+    font = load_font(actual_font_path, actual_font_size)
     text_width, text_height = calculate_text_size(text, font)
 
     if text_width > available_width:
@@ -187,6 +199,27 @@ def app_callback(
         raise typer.Exit(code=0)
 
 
+@app.command("list-fonts")
+def list_fonts_command(
+    quiet: Annotated[bool, typer.Option("--quiet", "-q", help="Quiet mode")] = False,
+) -> None:
+    """List available built-in fonts."""
+    try:
+        fonts = get_builtin_fonts()
+    except ResourceAccessError as e:
+        console.print(f"[red]Failed to access built-in fonts: {e}[/red]")
+        raise typer.Exit(1) from e
+
+    if not fonts:
+        console.print("[yellow]No built-in fonts available[/yellow]")
+        raise typer.Exit(0)
+
+    if not quiet:
+        console.print("[bold]Available built-in fonts:[/bold]\n")
+    for font in fonts:
+        console.print(f"  - {font}")
+
+
 @app.command("run")
 def run_command(
     text: Annotated[
@@ -218,6 +251,14 @@ def run_command(
             file_okay=True,
             dir_okay=False,
             readable=True,
+        ),
+    ] = None,
+    builtin_font: Annotated[
+        str | None,
+        typer.Option(
+            "--builtin-font",
+            "-b",
+            help="Use a built-in font (use list-fonts to see available options)",
         ),
     ] = None,
     font_size: Annotated[
@@ -309,7 +350,13 @@ def run_command(
 ) -> None:
     """Render pixel text image."""
 
-    if text is None and text_file is None and image_size is None and font_path is None:
+    if (
+        text is None
+        and text_file is None
+        and image_size is None
+        and font_path is None
+        and builtin_font is None
+    ):
         if not quiet:
             console.print("[bold blue]Interactive mode[/bold blue]\n")
 
@@ -325,13 +372,45 @@ def run_command(
             else:
                 text = Prompt.ask("Text to render")
 
-        if font_path is None:
-            font_path = Path(Prompt.ask("TTF/OTF font path"))
-            if not font_path.exists():
+        if font_path is None and builtin_font is None:
+            try:
+                builtin_fonts = get_builtin_fonts()
+            except ResourceAccessError as e:
                 console.print(
-                    f"[red]Error: font file does not exist: {font_path}[/red]"
+                    f"[yellow]Warning: Could not access built-in fonts: {e}[/yellow]"
                 )
-                raise typer.Exit(1)
+                builtin_fonts = []
+
+            if builtin_fonts:
+                font_choice = Prompt.ask(
+                    "Font source",
+                    choices=["builtin", "custom"],
+                    default="builtin",
+                )
+                if font_choice == "builtin":
+                    console.print("\nAvailable built-in fonts:")
+                    for i, font in enumerate(builtin_fonts, 1):
+                        console.print(f"  {i}. {font}")
+                    font_idx = int(Prompt.ask("Select font number", default="1")) - 1
+                    if 0 <= font_idx < len(builtin_fonts):
+                        builtin_font = builtin_fonts[font_idx]
+                    else:
+                        console.print("[red]Invalid font selection[/red]")
+                        raise typer.Exit(1)
+                else:
+                    font_path = Path(Prompt.ask("TTF/OTF font path"))
+                    if not font_path.exists():
+                        console.print(
+                            f"[red]Error: font file does not exist: {font_path}[/red]"
+                        )
+                        raise typer.Exit(1)
+            else:
+                font_path = Path(Prompt.ask("TTF/OTF font path"))
+                if not font_path.exists():
+                    console.print(
+                        f"[red]Error: font file does not exist: {font_path}[/red]"
+                    )
+                    raise typer.Exit(1)
 
         if image_size is None:
             image_size = Prompt.ask("Image size", default="1024x1024")
@@ -365,8 +444,14 @@ def run_command(
         console.print("[red]Error: --image-size is required[/red]")
         raise typer.Exit(1)
 
-    if font_path is None:
-        console.print("[red]Error: --font-path is required[/red]")
+    if font_path is None and builtin_font is None:
+        console.print("[red]Error: specify either --font-path or --builtin-font[/red]")
+        raise typer.Exit(1)
+
+    if font_path is not None and builtin_font is not None:
+        console.print(
+            "[red]Error: --font-path and --builtin-font are mutually exclusive[/red]"
+        )
         raise typer.Exit(1)
 
     if (font_size is None and not auto_fit) or (font_size is not None and auto_fit):
@@ -374,6 +459,16 @@ def run_command(
             "[red]Error: specify exactly one of --font-size or --auto-fit[/red]"
         )
         raise typer.Exit(1)
+
+    # Determine actual font path
+    actual_font_path: str
+    if font_path is not None:
+        actual_font_path = str(font_path)
+    elif builtin_font is not None:
+        actual_font_path = str(get_bundled_font_path(builtin_font))
+    else:
+        # This should not happen due to earlier validation
+        raise ValueError("Either font_path or builtin_font must be provided")
 
     try:
         parsed_image_size = parse_image_size(image_size)
@@ -401,8 +496,9 @@ def run_command(
                 progress.add_task("Validating layout...", total=None)
                 has_errors, warnings = pre_validate_layout(
                     text=text,
-                    font_path=str(font_path),
                     image_size=parsed_image_size,
+                    font_path=str(font_path) if font_path is not None else None,
+                    builtin_font=builtin_font,
                     font_size=font_size,
                     auto_fit=auto_fit,
                     padding=parsed_padding,
@@ -429,7 +525,7 @@ def run_command(
 
         image = render_text(
             text=text,
-            font_path=str(font_path),
+            font_path=actual_font_path,
             image_size=parsed_image_size,
             font_size=font_size,
             auto_fit=auto_fit,

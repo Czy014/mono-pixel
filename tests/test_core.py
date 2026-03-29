@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from mono_pixel import get_bundled_font_path
 from mono_pixel.exporter import save_image, strict_binarization
 from mono_pixel.font_loader import (
     FontNotFoundError,
@@ -19,7 +20,7 @@ from mono_pixel.renderer import (
     create_canvas,
 )
 
-TEST_FONT = Path(__file__).parent / "PICO-8 mono.ttf"
+TEST_FONT = get_bundled_font_path("pico8-mono.ttf")
 
 
 def test_validate_font_file_raises_for_missing():

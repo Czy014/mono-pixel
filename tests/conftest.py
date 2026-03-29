@@ -4,13 +4,13 @@ from pathlib import Path
 
 import pytest
 
+from mono_pixel import get_bundled_font_path
+
 
 @pytest.fixture
 def test_font_path() -> Path:
-    """Path to a test TrueType font included with the tests."""
-    font_path = Path(__file__).parent / "PICO-8 mono.ttf"
-    assert font_path.exists(), f"Test font file does not exist: {font_path}"
-    return font_path
+    """Path to a test TrueType font (using built-in font)."""
+    return get_bundled_font_path("pico8-mono.ttf")
 
 
 @pytest.fixture

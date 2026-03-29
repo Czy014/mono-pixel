@@ -26,19 +26,29 @@ uv run mono-pixel --help
 |--------|-------------|
 | `-V, --version` | Show version and exit |
 
-### Core options
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `list-fonts` | List all available built-in fonts |
+| `run` | Render pixel text image (default command) |
+
+### Core options (run command)
 
 | Option | Short | Description |
 |--------|-------|-------------|
 | `--text` | `-t` | Text to render |
 | `--text-file` | | Read text from a file (`UTF-8`) |
 | `--font-path` | `-f` | Path to a `.ttf` / `.otf` font file |
+| `--builtin-font` | `-b` | Use a built-in font (use `list-fonts` to see available options) |
 | `--image-size` | `-s` | Output image size, e.g. `1024x1024` (also accepts `X`, `*`, space as separator) |
 | `--font-size` | `-z` | Manual font size in **pixels** (mutually exclusive with `--auto-fit`) |
 | `--auto-fit` | `-a` | Auto-fit font size to fill the canvas (mutually exclusive with `--font-size`) |
 | `--output` | `-o` | Output PNG path (default: `output.png`) |
 
-> **Note:** you must supply exactly one of `--font-size` or `--auto-fit`.
+> **Note:** 
+> - You must supply exactly one of `--font-size` or `--auto-fit`.
+> - You must supply exactly one of `--font-path` or `--builtin-font`.
 
 ### Preview
 
@@ -92,19 +102,63 @@ Mono-pixel renders strictly monochrome images by default (every pixel becomes ei
 ### Interactive mode
 
 When run with no arguments, `mono-pixel run` enters interactive mode and prompts for:
-`Text source` → `Text to render` → `TTF/OTF font path` → `Image size` → `Font size mode` → `Output file path`
+`Text source` → `Text to render` → `Font source (builtin or custom)` → `Image size` → `Font size mode` → `Output file path`
+
+### List built-in fonts
+
+Use the `list-fonts` command to see all available built-in fonts:
+
+```bash
+mono-pixel list-fonts
+```
+
+Example output:
+```
+Available built-in fonts:
+
+  - pico8-mono.ttf
+  - pixel32.ttf
+```
+
+### Using built-in fonts
+
+To use a built-in font, use the `--builtin-font` option with the `run` command:
+
+```bash
+mono-pixel run --text "Hello Pixel!" --builtin-font pico8-mono.ttf --image-size 512x512 --auto-fit
+```
 
 ## Python API
 
 ```python
-from mono_pixel import generate_pixel_text
+from mono_pixel import (
+    generate_pixel_text,
+    get_builtin_fonts,
+    get_bundled_font_path,
+    load_builtin_font,
+)
 from mono_pixel.renderer import HorizontalAlign, VerticalAlign
 from mono_pixel.font_loader import load_font
 
-# High-level API — auto-fits font size
+# List available built-in fonts
+fonts = get_builtin_fonts()
+print("Available fonts:", fonts)
+
+# High-level API — using custom font
 image = generate_pixel_text(
     text="Hello World",
-    font_path="fonts/PICO-8.ttf",
+    font_path="path/to/custom.ttf",
+    image_size=(1024, 256),
+    align=HorizontalAlign.CENTER,
+    valign=VerticalAlign.MIDDLE,
+    bg_color="white",
+    fg_color="black",
+)
+
+# High-level API — using built-in font
+image = generate_pixel_text(
+    text="Hello World",
+    builtin_font="pico8-mono.ttf",
     image_size=(1024, 256),
     align=HorizontalAlign.CENTER,
     valign=VerticalAlign.MIDDLE,
@@ -114,19 +168,50 @@ image = generate_pixel_text(
 
 # Auto font sizing
 from mono_pixel.renderer import calculate_auto_font_size
+
+# Using custom font
 size = calculate_auto_font_size(
     text="Hello",
-    font_path="fonts/PICO-8.ttf",
+    font_path="path/to/custom.ttf",
     canvas_width=1024,
     canvas_height=256,
     padding=16,
 )
 
+# Using built-in font
+font_path = get_bundled_font_path("pixel32.ttf")
+size = calculate_auto_font_size(
+    text="Hello",
+    font_path=str(font_path),
+    canvas_width=1024,
+    canvas_height=256,
+    padding=16,
+)
+
+# Load built-in font directly
+font = load_builtin_font("pico8-mono.ttf", 32)
+
 # Manual rendering
 from mono_pixel.renderer import render_text
+
+# Using custom font
 image = render_text(
     text="Hello",
-    font_path="fonts/PICO-8.ttf",
+    font_path="path/to/custom.ttf",
+    image_size=(1024, 256),
+    font_size=64,
+    auto_fit=False,
+    padding=16,
+    align=HorizontalAlign.CENTER,
+    valign=VerticalAlign.MIDDLE,
+    bg_color="white",
+    fg_color="black",
+)
+
+# Using built-in font
+image = render_text(
+    text="Hello",
+    font_path=str(get_bundled_font_path("pixel32.ttf")),
     image_size=(1024, 256),
     font_size=64,
     auto_fit=False,

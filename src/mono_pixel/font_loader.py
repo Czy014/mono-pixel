@@ -1,26 +1,31 @@
 """Font loading and validation utilities."""
 
+from importlib import resources
 from pathlib import Path
 
 from PIL import ImageFont
 
+from .utils.exceptions import (
+    FontError,
+    FontNotFoundError,
+    InvalidFontError,
+    ResourceAccessError,
+)
 
-class FontError(Exception):
-    """Base class for font-related errors."""
-
-    pass
-
-
-class FontNotFoundError(FontError):
-    """Raised when a font file cannot be found."""
-
-    pass
-
-
-class InvalidFontError(FontError):
-    """Raised when a font file is invalid or unreadable."""
-
-    pass
+# Re-export exceptions for backward compatibility
+__all__ = [
+    "FontError",
+    "FontNotFoundError",
+    "InvalidFontError",
+    "validate_font_file",
+    "load_font",
+    "get_font_metrics",
+    "calculate_text_bbox",
+    "calculate_text_size",
+    "get_builtin_fonts",
+    "get_bundled_font_path",
+    "load_builtin_font",
+]
 
 
 def validate_font_file(font_path: str | Path) -> Path:
@@ -151,3 +156,82 @@ def calculate_text_size(text: str, font: ImageFont.FreeTypeFont) -> tuple[int, i
     height = bbox[3] - bbox[1]
 
     return (width, height)
+
+
+def get_builtin_fonts() -> list[str]:
+    """Get list of available bundled fonts.
+
+    Returns:
+        List of font filenames.
+
+    Raises:
+        ResourceAccessError: If the fonts directory cannot be accessed.
+    """
+    font_names = []
+    try:
+        font_dir = resources.files("mono_pixel.fonts")
+        for item in font_dir.iterdir():
+            if item.is_file():
+                name = item.name
+                if name.lower().endswith((".ttf", ".otf", ".ttc", ".otc")):
+                    font_names.append(name)
+    except (ModuleNotFoundError, FileNotFoundError) as e:
+        raise ResourceAccessError("Failed to access bundled fonts directory") from e
+    except Exception as e:
+        raise ResourceAccessError(
+            f"Unexpected error while accessing bundled fonts: {e}"
+        ) from e
+    return sorted(font_names)
+
+
+def get_bundled_font_path(font_name: str) -> Path:
+    """Get path to a bundled font file.
+
+    Args:
+        font_name: Name of the bundled font file.
+
+    Returns:
+        Path to the font file.
+
+    Raises:
+        FontNotFoundError: If the bundled font does not exist.
+        ResourceAccessError: If the font resource cannot be accessed.
+    """
+    # First check if the font exists in our list
+    try:
+        available_fonts = get_builtin_fonts()
+    except ResourceAccessError as e:
+        raise ResourceAccessError(f"Cannot verify font availability: {e}") from e
+
+    if font_name not in available_fonts:
+        raise FontNotFoundError(f"Bundled font not found: {font_name}")
+
+    try:
+        # Get the actual path
+        with resources.path("mono_pixel.fonts", font_name) as font_path:
+            return Path(font_path)
+    except (ModuleNotFoundError, FileNotFoundError) as e:
+        raise ResourceAccessError(f"Failed to access font resource: {font_name}") from e
+    except Exception as e:
+        raise ResourceAccessError(
+            f"Unexpected error accessing font {font_name}: {e}"
+        ) from e
+
+
+def load_builtin_font(font_name: str, font_size: int) -> ImageFont.FreeTypeFont:
+    """Load a bundled font with a given size.
+
+    Args:
+        font_name: Name of the bundled font file.
+        font_size: Font size in pixels.
+
+    Returns:
+        Pillow FreeType font object.
+
+    Raises:
+        FontNotFoundError: Bundled font does not exist.
+        InvalidFontError: Bundled font is invalid.
+        ValueError: Font size is invalid.
+    """
+    font_path = get_bundled_font_path(font_name)
+    return load_font(font_path, font_size)
