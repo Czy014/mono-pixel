@@ -1,15 +1,13 @@
 """High-fidelity pixel text rendering engine."""
 
-from __future__ import annotations
-
 from PIL import Image
 
 from .exporter import save_image, strict_binarization
 from .font_loader import (
-    FontError,
-    FontNotFoundError,
-    InvalidFontError,
     calculate_text_size,
+    get_builtin_fonts,
+    get_bundled_font_path,
+    load_builtin_font,
     load_font,
     validate_font_file,
 )
@@ -21,6 +19,15 @@ from .renderer import (
     render_pixel_text,
     render_text,
 )
+from .utils.exceptions import (
+    FontError,
+    FontNotFoundError,
+    InvalidFontError,
+    MonoPixelError,
+    ResourceAccessError,
+    ResourceError,
+    ResourceNotFoundError,
+)
 
 __version__ = "0.1.0"
 
@@ -28,9 +35,13 @@ __all__ = [
     # Version
     "__version__",
     # Exceptions
+    "MonoPixelError",
     "FontError",
     "FontNotFoundError",
     "InvalidFontError",
+    "ResourceError",
+    "ResourceNotFoundError",
+    "ResourceAccessError",
     # Enums
     "HorizontalAlign",
     "VerticalAlign",
@@ -38,6 +49,9 @@ __all__ = [
     "validate_font_file",
     "load_font",
     "calculate_text_size",
+    "get_builtin_fonts",
+    "get_bundled_font_path",
+    "load_builtin_font",
     # Renderer
     "create_canvas",
     "calculate_auto_font_size",
@@ -53,8 +67,9 @@ __all__ = [
 
 def generate_pixel_text(
     text: str,
-    font_path: str,
     image_size: tuple[int, int],
+    font_path: str | None = None,
+    builtin_font: str | None = None,
     font_size: int | None = None,
     auto_fit: bool = False,
     padding: int | tuple[int, int, int, int] = 16,
@@ -71,8 +86,9 @@ def generate_pixel_text(
 
     Args:
         text: Text to render.
-        font_path: Path to TTF/OTF font file.
         image_size: Output image size as (width, height).
+        font_path: Path to TTF/OTF font file. Mutually exclusive with builtin_font.
+        builtin_font: Name of a bundled font to use. Mutually exclusive with font_path.
         font_size: Manual font size in pixels; mutually exclusive with auto_fit.
         auto_fit: Whether to auto-fit font size.
         padding: Padding value or (top, right, bottom, left).
@@ -96,12 +112,27 @@ def generate_pixel_text(
     if not text:
         raise ValueError("Text cannot be empty")
 
+    if (font_path is None and builtin_font is None) or (
+        font_path is not None and builtin_font is not None
+    ):
+        raise ValueError("Specify exactly one of font_path or builtin_font")
+
     if (font_size is None and not auto_fit) or (font_size is not None and auto_fit):
         raise ValueError("Specify exactly one of font_size or auto_fit")
 
+    # Determine actual font path
+    actual_font_path: str
+    if font_path is not None:
+        actual_font_path = font_path
+    elif builtin_font is not None:
+        actual_font_path = str(get_bundled_font_path(builtin_font))
+    else:
+        # This should not happen due to earlier validation
+        raise ValueError("Either font_path or builtin_font must be provided")
+
     image = render_text(
         text=text,
-        font_path=font_path,
+        font_path=actual_font_path,
         image_size=image_size,
         font_size=font_size,
         auto_fit=auto_fit,
