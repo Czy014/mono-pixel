@@ -2,7 +2,7 @@
 
 from PIL import Image
 
-from .exporter import save_image, strict_binarization
+from .exporter import export_to_svg, save_image, strict_binarization
 from .font_loader import (
     calculate_text_size,
     get_builtin_fonts,
@@ -59,6 +59,7 @@ __all__ = [
     "render_text",
     # Exporter
     "strict_binarization",
+    "export_to_svg",
     "save_image",
     # High-level API
     "generate_pixel_text",
