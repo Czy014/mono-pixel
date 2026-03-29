@@ -4,10 +4,7 @@
 mono-pixel is a small Python library and CLI for rendering "pixel"-style text
 images. Use any font you want.
 
-
-# Quick start
-
-## Installation
+# Installation
 
 **Install directly (uvx / pipx)** — no clone required:
 
@@ -35,7 +32,7 @@ pip install .
 mono-pixel --help
 ```
 
-## Usage
+# Usage
 
 ```bash
 # just use
@@ -46,7 +43,7 @@ It will initiate an interactive mode to guide you through passing in some necess
 
 If you need a pure command-line, please refer to [Usage](docs/usage.md).
 
-## Gallery
+# Gallery
 
 Check out the [Gallery](docs/gallery.md) to see mono-pixel in action with different pixel fonts!
 
