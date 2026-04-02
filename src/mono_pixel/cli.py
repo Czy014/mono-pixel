@@ -224,7 +224,12 @@ def list_fonts_command(
 def run_command(
     text: Annotated[
         str | None,
-        typer.Option("--text", "-t", help="Text to render"),
+        typer.Option(
+            "--text",
+            "-t",
+            help="Text to render",
+            rich_help_panel="Core",
+        ),
     ] = None,
     text_file: Annotated[
         Path | None,
@@ -235,11 +240,17 @@ def run_command(
             file_okay=True,
             dir_okay=False,
             readable=True,
+            rich_help_panel="Core",
         ),
     ] = None,
     image_size: Annotated[
         str | None,
-        typer.Option("--image-size", "-s", help="Output image size, e.g. 1024x1024"),
+        typer.Option(
+            "--image-size",
+            "-s",
+            help="Output image size, e.g. 1024x1024",
+            rich_help_panel="Core",
+        ),
     ] = None,
     font_path: Annotated[
         Path | None,
@@ -251,6 +262,7 @@ def run_command(
             file_okay=True,
             dir_okay=False,
             readable=True,
+            rich_help_panel="Core",
         ),
     ] = None,
     builtin_font: Annotated[
@@ -259,6 +271,7 @@ def run_command(
             "--builtin-font",
             "-b",
             help="Use a built-in font (use list-fonts to see available options)",
+            rich_help_panel="Core",
         ),
     ] = None,
     font_size: Annotated[
@@ -267,6 +280,7 @@ def run_command(
             "--font-size",
             "-z",
             help="Manual font size in pixels (mutually exclusive with --auto-fit)",
+            rich_help_panel="Core",
         ),
     ] = None,
     auto_fit: Annotated[
@@ -275,34 +289,62 @@ def run_command(
             "--auto-fit",
             "-a",
             help="Auto-fit font size to canvas (mutually exclusive with --font-size)",
+            rich_help_panel="Core",
         ),
     ] = False,
     preview: Annotated[
         bool,
-        typer.Option("--preview", "-p", help="Preview only; do not save output file"),
+        typer.Option(
+            "--preview",
+            "-p",
+            help="Preview only; do not save output file",
+            rich_help_panel="Preview",
+        ),
     ] = False,
     preview_ascii: Annotated[
         bool,
-        typer.Option("--preview-ascii", help="Show ASCII preview only"),
+        typer.Option(
+            "--preview-ascii",
+            help="Show ASCII preview only",
+            rich_help_panel="Preview",
+        ),
     ] = False,
     preview_image: Annotated[
         bool,
         typer.Option(
             "--preview-image",
             help="Force image preview (fallback to ASCII if unavailable)",
+            rich_help_panel="Preview",
         ),
     ] = False,
     no_preview: Annotated[
         bool,
-        typer.Option("--no-preview", help="Disable preview and continue directly"),
+        typer.Option(
+            "--no-preview",
+            help="Disable preview and continue directly",
+            rich_help_panel="Preview",
+        ),
     ] = False,
     force: Annotated[
         bool,
-        typer.Option("--force", help="Skip validation, preview, and confirmation"),
+        typer.Option(
+            "--force",
+            help="Skip validation, preview, and confirmation",
+            rich_help_panel="Preview",
+        ),
     ] = False,
     output: Annotated[
         Path,
-        typer.Option("--output", "-o", help="Output PNG path", writable=True),
+        typer.Option(
+            "--output",
+            "-o",
+            help=(
+                "Output file path (.png for raster, "
+                ".svg for vector; default: output.png)"
+            ),
+            writable=True,
+            rich_help_panel="Output",
+        ),
     ] = DEFAULT_OUTPUT_PATH,
     padding: Annotated[
         str,
@@ -310,27 +352,36 @@ def run_command(
             "--padding",
             "-P",
             help="Padding: '16', '10,20', or '10,20,30,40'",
+            rich_help_panel="Layout",
         ),
     ] = "16",
     align: Annotated[
         HorizontalAlign,
-        typer.Option("--align", help="Horizontal alignment"),
+        typer.Option("--align", help="Horizontal alignment", rich_help_panel="Layout"),
     ] = HorizontalAlign.CENTER,
     valign: Annotated[
         VerticalAlign,
-        typer.Option("--valign", help="Vertical alignment"),
+        typer.Option("--valign", help="Vertical alignment", rich_help_panel="Layout"),
     ] = VerticalAlign.MIDDLE,
     bg_color: Annotated[
         str,
-        typer.Option("--bg-color", help="Background color"),
+        typer.Option("--bg-color", help="Background color", rich_help_panel="Layout"),
     ] = "white",
     fg_color: Annotated[
         str,
-        typer.Option("--fg-color", help="Foreground text color"),
+        typer.Option(
+            "--fg-color",
+            help="Foreground text color",
+            rich_help_panel="Layout",
+        ),
     ] = "black",
     no_binarization: Annotated[
         bool,
-        typer.Option("--no-binarization", help="Disable strict binarization"),
+        typer.Option(
+            "--no-binarization",
+            help="Disable strict binarization",
+            rich_help_panel="Binarization",
+        ),
     ] = False,
     binarization_threshold: Annotated[
         int,
@@ -339,14 +390,25 @@ def run_command(
             min=0,
             max=255,
             help="Binarization threshold (0-255)",
+            rich_help_panel="Binarization",
         ),
     ] = 127,
-    dpi: Annotated[int, typer.Option("--dpi", help="Output image DPI")] = 72,
+    dpi: Annotated[
+        int,
+        typer.Option("--dpi", help="Output image DPI", rich_help_panel="Output"),
+    ] = 72,
     overwrite: Annotated[
         bool,
-        typer.Option("--overwrite", help="Overwrite existing output file"),
+        typer.Option(
+            "--overwrite",
+            help="Overwrite existing output file",
+            rich_help_panel="Output",
+        ),
     ] = False,
-    quiet: Annotated[bool, typer.Option("--quiet", "-q", help="Quiet mode")] = False,
+    quiet: Annotated[
+        bool,
+        typer.Option("--quiet", "-q", help="Quiet mode", rich_help_panel="Output"),
+    ] = False,
 ) -> None:
     """Render pixel text image."""
 

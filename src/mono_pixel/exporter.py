@@ -1,5 +1,6 @@
 """Image export and binarization utilities."""
 
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from PIL import Image
@@ -145,6 +146,7 @@ def save_image(
     binarization_threshold: int = 127,
     dpi: tuple[int, int] = (72, 72),
     optimize: bool = True,
+    svg_pixel_size: int = 1,
 ) -> Path:
     """Run full image save pipeline.
 
@@ -155,12 +157,15 @@ def save_image(
         bg_color: Background color.
         fg_color: Foreground color.
         binarization_threshold: Binarization threshold.
-        dpi: Output DPI.
-        optimize: Whether to optimize output size.
+        dpi: Output DPI (for PNG).
+        optimize: Whether to optimize output size (for PNG).
+        svg_pixel_size: Size of each pixel in SVG units (for SVG).
 
     Returns:
         Path to output file.
     """
+    output_path = Path(output_path)
+
     if strict_binarize:
         processed_image = convert_to_monochrome(
             image, bg_color, fg_color, binarization_threshold
@@ -168,4 +173,154 @@ def save_image(
     else:
         processed_image = image
 
-    return export_to_png(processed_image, output_path, dpi, optimize)
+    # Determine output format based on file extension
+    suffix = output_path.suffix.lower()
+
+    if suffix == ".svg":
+        return export_to_svg(
+            processed_image,
+            output_path,
+            bg_color=bg_color,
+            fg_color=fg_color,
+            pixel_size=svg_pixel_size,
+        )
+    else:
+        # Default to PNG
+        return export_to_png(processed_image, output_path, dpi, optimize)
+
+
+def export_to_svg(
+    image: Image.Image,
+    output_path: str | Path,
+    bg_color: str | tuple[int, int, int] = "white",
+    fg_color: str | tuple[int, int, int] = "black",
+    pixel_size: int = 1,
+) -> Path:
+    """Export image to SVG file.
+
+    Args:
+        image: Image to export (should be 1-bit or RGB).
+        output_path: Output file path.
+        bg_color: Background color.
+        fg_color: Foreground color.
+        pixel_size: Size of each pixel in SVG units.
+
+    Returns:
+        Path to output file.
+
+    Raises:
+        ExportError: Export failed.
+    """
+    output_path = Path(output_path)
+
+    try:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+    except Exception as e:
+        raise ExportError(
+            f"Failed to create output directory: {output_path.parent}. Error: {e}"
+        ) from e
+
+    def parse_color(color):
+        if isinstance(color, str):
+            from PIL import ImageColor
+
+            rgb = ImageColor.getrgb(color)
+            return f"#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}"
+        elif isinstance(color, tuple) and len(color) >= 3:
+            return f"#{color[0]:02x}{color[1]:02x}{color[2]:02x}"
+        return str(color)
+
+    bg_svg = parse_color(bg_color)
+    fg_svg = parse_color(fg_color)
+
+    width, height = image.size
+    svg_width = width * pixel_size
+    svg_height = height * pixel_size
+
+    # Create SVG root element
+    svg = ET.Element(
+        "svg",
+        {
+            "xmlns": "http://www.w3.org/2000/svg",
+            "width": str(svg_width),
+            "height": str(svg_height),
+            "viewBox": f"0 0 {svg_width} {svg_height}",
+        },
+    )
+
+    # Add background rectangle
+    ET.SubElement(
+        svg,
+        "rect",
+        {
+            "x": "0",
+            "y": "0",
+            "width": str(svg_width),
+            "height": str(svg_height),
+            "fill": bg_svg,
+        },
+    )
+
+    # Create a group for foreground pixels
+    fg_group = ET.SubElement(svg, "g", {"fill": fg_svg})
+
+    # Get pixel data based on image mode
+    if image.mode == "1":
+        for y in range(height):
+            for x in range(width):
+                pixel = image.getpixel((x, y))
+                # For 1-bit images, 0 is foreground (black)
+                if pixel == 0:
+                    ET.SubElement(
+                        fg_group,
+                        "rect",
+                        {
+                            "x": str(x * pixel_size),
+                            "y": str(y * pixel_size),
+                            "width": str(pixel_size),
+                            "height": str(pixel_size),
+                        },
+                    )
+    elif image.mode == "L":
+        for y in range(height):
+            for x in range(width):
+                pixel = image.getpixel((x, y))
+                # For grayscale, treat dark pixels as foreground
+                if isinstance(pixel, int) and pixel < 128:
+                    ET.SubElement(
+                        fg_group,
+                        "rect",
+                        {
+                            "x": str(x * pixel_size),
+                            "y": str(y * pixel_size),
+                            "width": str(pixel_size),
+                            "height": str(pixel_size),
+                        },
+                    )
+    else:
+        # RGB or RGBA
+        for y in range(height):
+            for x in range(width):
+                pixel = image.getpixel((x, y))
+                if isinstance(pixel, tuple) and len(pixel) >= 3:
+                    # Treat non-white pixels as foreground
+                    if pixel[:3] != (255, 255, 255):
+                        ET.SubElement(
+                            fg_group,
+                            "rect",
+                            {
+                                "x": str(x * pixel_size),
+                                "y": str(y * pixel_size),
+                                "width": str(pixel_size),
+                                "height": str(pixel_size),
+                            },
+                        )
+
+    # Write SVG file
+    tree = ET.ElementTree(svg)
+    try:
+        tree.write(str(output_path), encoding="utf-8", xml_declaration=True)
+    except Exception as e:
+        raise ExportError(f"Failed to save SVG file: {output_path}. Error: {e}") from e
+
+    return output_path

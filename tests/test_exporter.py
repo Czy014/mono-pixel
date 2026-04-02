@@ -1,5 +1,6 @@
 """Exporter module unit tests."""
 
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import pytest
@@ -8,6 +9,7 @@ from PIL import Image
 from mono_pixel.exporter import (
     convert_to_monochrome,
     export_to_png,
+    export_to_svg,
     save_image,
     strict_binarization,
 )
@@ -197,6 +199,139 @@ class TestEdgeCases:
         canvas = create_canvas(1024, 1024, "white")
         result = save_image(canvas, temp_output_path, strict_binarize=True)
         assert result.exists()
+
+
+class TestExportToSvg:
+    """Tests for SVG export."""
+
+    def test_export_basic(self, tmp_path: Path):
+        """Basic SVG export writes valid file."""
+        canvas = create_canvas(100, 50, "white")
+        output_path = tmp_path / "output.svg"
+        result = export_to_svg(canvas, output_path)
+
+        assert result == output_path
+        assert result.exists()
+
+        # Verify it's valid XML
+        tree = ET.parse(str(result))
+        root = tree.getroot()
+        assert root.tag == "{http://www.w3.org/2000/svg}svg"
+        assert root.attrib["width"] == "100"
+        assert root.attrib["height"] == "50"
+
+    def test_export_with_pixel_size(self, tmp_path: Path):
+        """Custom pixel size works."""
+        canvas = create_canvas(10, 10, "white")
+        output_path = tmp_path / "output.svg"
+        result = export_to_svg(canvas, output_path, pixel_size=2)
+
+        assert result.exists()
+
+        tree = ET.parse(str(result))
+        root = tree.getroot()
+        assert root.attrib["width"] == "20"
+        assert root.attrib["height"] == "20"
+
+    def test_export_custom_colors(self, tmp_path: Path):
+        """Custom colors work."""
+        canvas = create_canvas(50, 50, "white")
+        output_path = tmp_path / "output.svg"
+        result = export_to_svg(canvas, output_path, bg_color="red", fg_color="blue")
+
+        assert result.exists()
+
+        tree = ET.parse(str(result))
+        root = tree.getroot()
+        # Check background rect has red color
+        bg_rect = root.find(".//{http://www.w3.org/2000/svg}rect")
+        assert bg_rect is not None
+        assert bg_rect.attrib["fill"] == "#ff0000"
+
+    def test_export_with_binarized_image(self, tmp_path: Path):
+        """Export binarized image works."""
+        canvas = create_canvas(50, 50, "white")
+        binarized = strict_binarization(canvas)
+        output_path = tmp_path / "output.svg"
+        result = export_to_svg(
+            binarized, output_path, bg_color="white", fg_color="black"
+        )
+
+        assert result.exists()
+
+        tree = ET.parse(str(result))
+        root = tree.getroot()
+        # Should have background and foreground group
+        fg_group = root.find(".//{http://www.w3.org/2000/svg}g")
+        assert fg_group is not None
+
+    def test_export_creates_parent_dir(self, tmp_path: Path):
+        """Creates non-existent parent directory."""
+        canvas = create_canvas(50, 50, "white")
+        output_path = tmp_path / "nonexistent" / "output.svg"
+        result = export_to_svg(canvas, output_path)
+
+        assert result.exists()
+
+
+class TestSaveImageSvg:
+    """Tests for save_image with SVG format."""
+
+    def test_save_as_svg(self, tmp_path: Path):
+        """save_image auto-detects SVG format."""
+        canvas = create_canvas(100, 50, "white")
+        output_path = tmp_path / "output.svg"
+        result = save_image(canvas, output_path)
+
+        assert result.exists()
+        assert result.suffix == ".svg"
+
+        # Verify it's valid SVG
+        tree = ET.parse(str(result))
+        root = tree.getroot()
+        assert root.tag == "{http://www.w3.org/2000/svg}svg"
+
+    def test_save_as_svg_with_pixel_size(self, tmp_path: Path):
+        """SVG pixel size option works."""
+        canvas = create_canvas(10, 10, "white")
+        output_path = tmp_path / "output.svg"
+        result = save_image(canvas, output_path, svg_pixel_size=3)
+
+        assert result.exists()
+
+        tree = ET.parse(str(result))
+        root = tree.getroot()
+        assert root.attrib["width"] == "30"
+        assert root.attrib["height"] == "30"
+
+    def test_save_png_still_works(self, temp_output_path: Path):
+        """PNG export still works after SVG changes."""
+        canvas = create_canvas(100, 50, "white")
+        result = save_image(canvas, temp_output_path)
+
+        assert result.exists()
+        assert result.suffix == ".png"
+
+        with Image.open(result) as img:
+            assert img.size == (100, 50)
+
+    def test_save_svg_overrides_format_for_svg_ext(self, tmp_path: Path):
+        """Even with PNG options, .svg extension produces SVG."""
+        canvas = create_canvas(100, 50, "white")
+        output_path = tmp_path / "output.svg"
+        result = save_image(
+            canvas,
+            output_path,
+            dpi=(300, 300),  # PNG-only option, ignored for SVG
+            svg_pixel_size=2,
+        )
+
+        assert result.exists()
+        assert result.suffix == ".svg"
+
+        tree = ET.parse(str(result))
+        root = tree.getroot()
+        assert root.attrib["width"] == "200"
 
     def test_black_background(self, temp_output_path: Path):
         """测试黑色背景"""

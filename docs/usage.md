@@ -44,7 +44,7 @@ uv run mono-pixel --help
 | `--image-size` | `-s` | Output image size, e.g. `1024x1024` (also accepts `X`, `*`, space as separator) |
 | `--font-size` | `-z` | Manual font size in **pixels** (mutually exclusive with `--auto-fit`) |
 | `--auto-fit` | `-a` | Auto-fit font size to fill the canvas (mutually exclusive with `--font-size`) |
-| `--output` | `-o` | Output PNG path (default: `output.png`) |
+| `--output` | `-o` | Output file path (`.png` for raster, `.svg` for vector; default: `output.png`) |
 
 > **Note:** 
 > - You must supply exactly one of `--font-size` or `--auto-fit`.
@@ -86,9 +86,11 @@ The default preview (when neither flag is set) shows a **position-aware ASCII pr
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--dpi` | `72` | Output image DPI |
-| `--overwrite` | | Overwrite the output file without prompting |
+| `--dpi` | `72` | Output image DPI (for PNG) |
+| `--overwrite` | | Overwrite the existing output file without prompting |
 | `--quiet` / `-q` | | Quiet mode — suppress all progress and status messages |
+
+> **Note:** Output format is determined by file extension. Use `.png` for raster images (default) or `.svg` for vector graphics.
 
 ### Binarization
 
@@ -223,7 +225,22 @@ image = render_text(
 )
 
 # Export
-from mono_pixel.exporter import save_image
+from mono_pixel.exporter import save_image, export_to_svg
+
+# Export to PNG (default)
 save_image(image, "out.png", strict_binarize=True, dpi=(300, 300))
+
+# Export to SVG (vector graphics)
+# Automatically detects format from file extension
+save_image(image, "out.svg", svg_pixel_size=2)
+
+# Or use the dedicated SVG export function directly
+export_to_svg(
+    image,
+    "out.svg",
+    bg_color="white",
+    fg_color="black",
+    pixel_size=1,
+)
 ```
 
