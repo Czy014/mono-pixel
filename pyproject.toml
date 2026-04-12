@@ -1,6 +1,6 @@
 [project]
 name = "mono-pixel"
-version = "0.1.1"
+version = "0.1.2"
 description = "a tool that converts your text and fonts into pixel img."
 readme = "README.md"
 requires-python = ">=3.12"
