@@ -3,7 +3,7 @@
 from importlib import resources
 from pathlib import Path
 
-from PIL import ImageFont
+from PIL import Image, ImageDraw, ImageFont
 
 from .utils.exceptions import (
     FontError,
@@ -22,10 +22,24 @@ __all__ = [
     "get_font_metrics",
     "calculate_text_bbox",
     "calculate_text_size",
+    "get_multiline_spacing",
     "get_builtin_fonts",
     "get_bundled_font_path",
     "load_builtin_font",
 ]
+
+
+def get_multiline_spacing(font: ImageFont.FreeTypeFont) -> int:
+    """Return an adaptive line spacing for multiline text rendering.
+
+    The value is derived from font size/metrics to keep visual breathing room
+    between lines without introducing an overly large gap.
+    """
+    ascent, descent = font.getmetrics()
+    nominal_size = getattr(font, "size", ascent + descent)
+
+    # Keep at least 1px and scale with font size for consistent aesthetics.
+    return max(1, int(nominal_size * 0.18))
 
 
 def validate_font_file(font_path: str | Path) -> Path:
@@ -130,7 +144,19 @@ def calculate_text_bbox(
     Returns:
         Bounding box as (left, top, right, bottom).
     """
-    bbox = font.getbbox(text)
+    if not text:
+        return (0, 0, 0, 0)
+
+    # Use Pillow multiline metrics when text contains explicit line breaks.
+    if "\n" in text:
+        spacing = get_multiline_spacing(font)
+        draw = ImageDraw.Draw(Image.new("L", (1, 1), 0))
+        bbox = draw.multiline_textbbox(
+            (0, 0), text, font=font, spacing=spacing, align="left"
+        )
+    else:
+        bbox = font.getbbox(text)
+
     if bbox is None:
         return (0, 0, 0, 0)
 

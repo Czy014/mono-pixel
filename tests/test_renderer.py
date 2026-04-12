@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
+from mono_pixel.font_loader import calculate_text_size, get_multiline_spacing, load_font
 from mono_pixel.renderer import (
     HorizontalAlign,
     VerticalAlign,
@@ -150,12 +151,18 @@ class TestRenderPixelText:
 
     def test_different_colors(self, test_font_path: Path):
         """Rendering supports different foreground/background colors."""
-        from mono_pixel.font_loader import load_font
-
         canvas = create_canvas(200, 100, "black")
         font = load_font(test_font_path, 32)
 
         result = render_pixel_text(canvas, "Test", font, (10, 10), "white")
+        assert isinstance(result, Image.Image)
+
+    def test_render_multiline_text(self, test_font_path: Path):
+        """Rendering supports explicit newline characters."""
+        canvas = create_canvas(300, 200, "white")
+        font = load_font(test_font_path, 40)
+
+        result = render_pixel_text(canvas, "Hello\nPixel", font, (20, 20), "black")
         assert isinstance(result, Image.Image)
 
 
@@ -206,6 +213,36 @@ class TestRenderText:
         )
         assert isinstance(result, Image.Image)
         assert result.size == (400, 200)
+
+    def test_render_with_newlines(self, test_font_path: Path):
+        """render_text supports explicit newlines in text."""
+        result = render_text(
+            text="Line 1\nLine 2",
+            font_path=str(test_font_path),
+            image_size=(300, 200),
+            auto_fit=True,
+        )
+        assert isinstance(result, Image.Image)
+        assert result.size == (300, 200)
+
+
+class TestTextSize:
+    """Text size helpers should support multiline text."""
+
+    def test_multiline_height_exceeds_single_line(self, test_font_path: Path):
+        """Multiline text should have larger height than single-line text."""
+        font = load_font(test_font_path, 32)
+        _, single_h = calculate_text_size("Hello Pixel", font)
+        _, multi_h = calculate_text_size("Hello\nPixel", font)
+
+        assert multi_h > single_h
+
+    def test_multiline_spacing_is_positive(self, test_font_path: Path):
+        """Adaptive multiline spacing should always be positive."""
+        font = load_font(test_font_path, 32)
+        spacing = get_multiline_spacing(font)
+
+        assert spacing > 0
 
     def test_invalid_parameters(
         self, test_font_path: Path, sample_text: str, image_size: tuple[int, int]
