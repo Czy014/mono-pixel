@@ -4,7 +4,12 @@ from enum import StrEnum
 
 from PIL import Image, ImageDraw, ImageFont
 
-from .font_loader import calculate_text_bbox, calculate_text_size, load_font
+from .font_loader import (
+    calculate_text_bbox,
+    calculate_text_size,
+    get_multiline_spacing,
+    load_font,
+)
 
 
 class HorizontalAlign(StrEnum):
@@ -174,12 +179,23 @@ def render_pixel_text(
     """
     draw = ImageDraw.Draw(canvas)
 
-    draw.text(
-        position,
-        text,
-        font=font,
-        fill=fg_color,
-    )
+    if "\n" in text:
+        spacing = get_multiline_spacing(font)
+        draw.multiline_text(
+            position,
+            text,
+            font=font,
+            fill=fg_color,
+            spacing=spacing,
+            align="left",
+        )
+    else:
+        draw.text(
+            position,
+            text,
+            font=font,
+            fill=fg_color,
+        )
 
     return canvas
 

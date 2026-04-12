@@ -110,6 +110,19 @@ def parse_padding(padding_str: str) -> int | tuple[int, int, int, int]:
         )
 
 
+def normalize_cli_text(text: str) -> str:
+    """Normalize direct CLI text input.
+
+    Convert escaped newline sequences ("\\n", "\\r\\n") to actual line breaks.
+    Preserve escaped literal "\\n" written as "\\\\n".
+    """
+    literal_newline_token = "\x00MONO_PIXEL_LITERAL_BACKSLASH_N\x00"
+    normalized = text.replace("\\\\n", literal_newline_token)
+    normalized = normalized.replace("\\r\\n", "\n")
+    normalized = normalized.replace("\\n", "\n")
+    return normalized.replace(literal_newline_token, "\\n")
+
+
 # preview helpers have been moved to `mono_pixel.utils.preview`
 
 
@@ -497,6 +510,10 @@ def run_command(
         except Exception as e:
             console.print(f"[red]Failed to read text file: {e}[/red]")
             raise typer.Exit(1) from e
+
+    # For direct CLI input, users commonly pass escaped newlines as "\n".
+    if text is not None and text_file is None:
+        text = normalize_cli_text(text)
 
     if not text:
         console.print("[red]Error: text cannot be empty[/red]")
