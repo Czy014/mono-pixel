@@ -5,15 +5,15 @@ from pathlib import Path
 import pytest
 
 from mono_pixel import get_bundled_font_path
-from mono_pixel.exporter import save_image, strict_binarization
-from mono_pixel.font_loader import (
+from mono_pixel.components.exporter import save_image, strict_binarization
+from mono_pixel.components.font_loader import (
     FontNotFoundError,
     calculate_text_size,
     get_font_metrics,
     load_font,
     validate_font_file,
 )
-from mono_pixel.renderer import (
+from mono_pixel.components.renderer import (
     HorizontalAlign,
     VerticalAlign,
     calculate_text_position,

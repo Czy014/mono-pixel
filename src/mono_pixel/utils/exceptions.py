@@ -41,3 +41,9 @@ class ResourceAccessError(ResourceError):
     """Raised when a bundled resource cannot be accessed."""
 
     pass
+
+
+class ExportError(MonoPixelError):
+    """Raised when image export fails."""
+
+    pass

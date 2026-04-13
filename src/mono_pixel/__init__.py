@@ -2,8 +2,8 @@
 
 from PIL import Image
 
-from .exporter import export_to_svg, save_image, strict_binarization
-from .font_loader import (
+from .components.exporter import export_to_svg, save_image, strict_binarization
+from .components.font_loader import (
     calculate_text_size,
     get_builtin_fonts,
     get_bundled_font_path,
@@ -11,15 +11,24 @@ from .font_loader import (
     load_font,
     validate_font_file,
 )
-from .renderer import (
+from .components.renderer import (
     HorizontalAlign,
+    Renderer,
     VerticalAlign,
     calculate_auto_font_size,
     create_canvas,
     render_pixel_text,
     render_text,
 )
+from .core import (
+    ExportRequest,
+    PipelineEngine,
+    PipelineRequest,
+    PipelineResult,
+    RenderRequest,
+)
 from .utils.exceptions import (
+    ExportError,
     FontError,
     FontNotFoundError,
     InvalidFontError,
@@ -39,12 +48,14 @@ __all__ = [
     "FontError",
     "FontNotFoundError",
     "InvalidFontError",
+    "ExportError",
     "ResourceError",
     "ResourceNotFoundError",
     "ResourceAccessError",
     # Enums
     "HorizontalAlign",
     "VerticalAlign",
+    "Renderer",
     # Font loader
     "validate_font_file",
     "load_font",
@@ -61,6 +72,12 @@ __all__ = [
     "strict_binarization",
     "export_to_svg",
     "save_image",
+    # Core pipeline
+    "RenderRequest",
+    "ExportRequest",
+    "PipelineRequest",
+    "PipelineResult",
+    "PipelineEngine",
     # High-level API
     "generate_pixel_text",
 ]
@@ -131,10 +148,13 @@ def generate_pixel_text(
         # This should not happen due to earlier validation
         raise ValueError("Either font_path or builtin_font must be provided")
 
-    image = render_text(
+    pipeline = PipelineEngine()
+    from .core.input_resolver import build_pipeline_request
+
+    request = build_pipeline_request(
         text=text,
-        font_path=actual_font_path,
         image_size=image_size,
+        font_path=actual_font_path,
         font_size=font_size,
         auto_fit=auto_fit,
         padding=padding,
@@ -142,18 +162,9 @@ def generate_pixel_text(
         valign=valign,
         bg_color=bg_color,
         fg_color=fg_color,
+        output_path=output_path,
+        no_binarization=not strict_binarize,
+        binarization_threshold=binarization_threshold,
+        dpi=dpi[0],
     )
-
-    if output_path is not None:
-        save_image(
-            image=image,
-            output_path=output_path,
-            strict_binarize=strict_binarize,
-            bg_color=bg_color,
-            fg_color=fg_color,
-            binarization_threshold=binarization_threshold,
-            dpi=dpi,
-            optimize=True,
-        )
-
-    return image
+    return pipeline.run(request).image

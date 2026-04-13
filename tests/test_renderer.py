@@ -5,8 +5,12 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from mono_pixel.font_loader import calculate_text_size, get_multiline_spacing, load_font
-from mono_pixel.renderer import (
+from mono_pixel.components.font_loader import (
+    calculate_text_size,
+    get_multiline_spacing,
+    load_font,
+)
+from mono_pixel.components.renderer import (
     HorizontalAlign,
     VerticalAlign,
     calculate_auto_font_size,
@@ -51,7 +55,7 @@ class TestCalculateTextPosition:
 
     def test_center_alignment(self, test_font_path: Path, sample_text: str):
         """Center alignment computes integer coordinates."""
-        from mono_pixel.font_loader import load_font
+        from mono_pixel.components.font_loader import load_font
 
         font = load_font(test_font_path, 32)
         x, y = calculate_text_position(
@@ -68,7 +72,7 @@ class TestCalculateTextPosition:
 
     def test_left_alignment(self, test_font_path: Path, sample_text: str):
         """Left alignment computes integer coordinates."""
-        from mono_pixel.font_loader import load_font
+        from mono_pixel.components.font_loader import load_font
 
         font = load_font(test_font_path, 32)
         x, y = calculate_text_position(
@@ -79,7 +83,7 @@ class TestCalculateTextPosition:
 
     def test_right_alignment(self, test_font_path: Path, sample_text: str):
         """Right alignment computes integer coordinates."""
-        from mono_pixel.font_loader import load_font
+        from mono_pixel.components.font_loader import load_font
 
         font = load_font(test_font_path, 32)
         x, y = calculate_text_position(
@@ -90,7 +94,7 @@ class TestCalculateTextPosition:
 
     def test_different_paddings(self, test_font_path: Path, sample_text: str):
         """Different padding formats are supported."""
-        from mono_pixel.font_loader import load_font
+        from mono_pixel.components.font_loader import load_font
 
         font = load_font(test_font_path, 32)
 
@@ -139,7 +143,7 @@ class TestRenderPixelText:
 
     def test_render_basic(self, test_font_path: Path, sample_text: str):
         """Basic pixel rendering returns a valid image."""
-        from mono_pixel.font_loader import load_font
+        from mono_pixel.components.font_loader import load_font
 
         canvas = create_canvas(512, 256, "white")
         font = load_font(test_font_path, 64)

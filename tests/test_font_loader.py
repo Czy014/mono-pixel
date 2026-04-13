@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from PIL import ImageFont
 
-from mono_pixel.font_loader import (
+from mono_pixel.components.font_loader import (
     FontError,
     FontNotFoundError,
     InvalidFontError,

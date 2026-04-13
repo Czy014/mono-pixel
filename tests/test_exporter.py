@@ -6,14 +6,14 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from mono_pixel.exporter import (
+from mono_pixel.components.exporter import (
     convert_to_monochrome,
     export_to_png,
     export_to_svg,
     save_image,
     strict_binarization,
 )
-from mono_pixel.renderer import create_canvas
+from mono_pixel.components.renderer import create_canvas
 
 
 class TestStrictBinarization:

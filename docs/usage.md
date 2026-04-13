@@ -139,8 +139,8 @@ from mono_pixel import (
     get_bundled_font_path,
     load_builtin_font,
 )
-from mono_pixel.renderer import HorizontalAlign, VerticalAlign
-from mono_pixel.font_loader import load_font
+from mono_pixel.components.renderer import HorizontalAlign, VerticalAlign
+from mono_pixel.components.font_loader import load_font
 
 # List available built-in fonts
 fonts = get_builtin_fonts()
@@ -169,7 +169,7 @@ image = generate_pixel_text(
 )
 
 # Auto font sizing
-from mono_pixel.renderer import calculate_auto_font_size
+from mono_pixel.components.renderer import calculate_auto_font_size
 
 # Using custom font
 size = calculate_auto_font_size(
@@ -194,7 +194,7 @@ size = calculate_auto_font_size(
 font = load_builtin_font("pico8-mono.ttf", 32)
 
 # Manual rendering
-from mono_pixel.renderer import render_text
+from mono_pixel.components.renderer import render_text
 
 # Using custom font
 image = render_text(
@@ -225,7 +225,7 @@ image = render_text(
 )
 
 # Export
-from mono_pixel.exporter import save_image, export_to_svg
+from mono_pixel.components.exporter import save_image, export_to_svg
 
 # Export to PNG (default)
 save_image(image, "out.png", strict_binarize=True, dpi=(300, 300))
