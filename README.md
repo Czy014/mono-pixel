@@ -1,8 +1,16 @@
 
-![mono-pixel logo](docs/mono-pixel-logo.png)
 
-mono-pixel is a small Python library and CLI for rendering "pixel"-style text
+<div align="center">
+
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="docs/mono-pixel-logo.png">
+  <img alt="mono-pixel logo" src="docs/mono-pixel-logo.png" width="50%" height="50%">
+</picture>
+
+A small Python library and CLI for rendering "pixel"-style text
 images. Use any font you want.
+
+</div>
 
 # Installation
 
